@@ -1,0 +1,100 @@
+<h2 class="sr-only">Prévia do app Rolê com Marco com navegação por banners: home com mapa e banners de categoria; ao tocar num banner abre o mapa e a lista da categoria.</h2>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+
+<div style="background:var(--surface-1);border-radius:20px;padding:10px;">
+<div id="app" style="background:#0e1512;border-radius:16px;padding:12px;color:#eaf3ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <div style="width:36px;height:36px;border-radius:11px;background:#7ed957;display:flex;align-items:center;justify-content:center;font-size:19px;">🌵</div>
+    <div><div style="font-size:16px;font-weight:600;">Rolê com Marco</div><div style="font-size:11px;color:#9fb3a8;">228 restaurantes em São Paulo</div></div>
+  </div>
+
+  <div id="pmap" style="height:180px;border-radius:12px;border:1px solid #2a3a30;z-index:0;"></div>
+
+  <!-- HOME -->
+  <div id="phome">
+    <div id="pbanAll" style="margin-top:10px;border-radius:14px;border:1px solid #2a3a30;background:linear-gradient(120deg,#12351f,#0e1512);padding:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+      <div><div style="font-size:16px;font-weight:700;">🗺️ Todas as lojas</div><div style="font-size:11px;color:#9fb3a8;margin-top:2px;">Ver todos no mapa</div></div>
+      <div style="font-size:22px;color:#7ed957;">›</div>
+    </div>
+    <div style="font-size:12px;color:#9fb3a8;text-transform:uppercase;letter-spacing:.05em;margin:14px 2px 8px;">Categorias</div>
+    <div id="pgrid" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;"></div>
+  </div>
+
+  <!-- CATEGORIA -->
+  <div id="pcat" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+      <button id="pback" style="width:34px;height:34px;border-radius:10px;border:1px solid #2a3a30;background:#15201b;color:#eaf3ee;font-size:17px;cursor:pointer;">‹</button>
+      <div id="pcatTitle" style="font-size:17px;font-weight:700;flex:1;">Categoria</div>
+    </div>
+    <div id="pstatus" style="display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px;">
+      <button class="ps on" data-st="todos" style="white-space:nowrap;font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid #2a3a30;background:#7ed957;color:#0e1512;font-weight:600;">Todos</button>
+      <button class="ps" data-st="metro" style="white-space:nowrap;font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid #2a3a30;background:#15201b;color:#eaf3ee;">🚇 Perto do metrô</button>
+      <button class="ps" data-st="faltam" style="white-space:nowrap;font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid #2a3a30;background:#15201b;color:#eaf3ee;">A visitar</button>
+      <button class="ps" data-st="fui" style="white-space:nowrap;font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid #2a3a30;background:#15201b;color:#eaf3ee;">✓ Já fui</button>
+    </div>
+    <div id="plist" style="margin-top:8px;display:flex;flex-direction:column;gap:7px;"></div>
+  </div>
+
+  <div style="font-size:10px;color:#6f8578;text-align:center;margin-top:10px;">Prévia com 18 lugares posicionados. O app completo localiza os 228 e todas as categorias sozinho.</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+ var CAT={"Brasileira":"#4ade80","Contemporânea":"#7ed957","Asiática":"#f472b6","Carnes":"#ef5350","Coreana":"#c026d3","Mexicana":"#f59e0b","Boteco":"#f0997b","Italiana":"#e24b4a","Pizza":"#fbbf24","Japonesa":"#f472b6"};
+ var IC={"Brasileira":"🇧🇷","Contemporânea":"🍽️","Asiática":"🥢","Carnes":"🥩","Coreana":"🍲","Mexicana":"🌮","Boteco":"🍢","Italiana":"🍝","Pizza":"🍕","Japonesa":"🍣"};
+ var COUNT={"Brasileira":17,"Contemporânea":27,"Asiática":20,"Carnes":7,"Coreana":1,"Mexicana":4,"Boteco":12,"Italiana":25,"Pizza":8,"Japonesa":8};
+ var P=[
+  {n:"DOM",c:"Brasileira",ll:[-23.5615,-46.6717]},{n:"Dalva e Dito",c:"Brasileira",ll:[-23.5622,-46.669]},
+  {n:"Casa do Porco",c:"Brasileira",ll:[-23.5455,-46.639]},{n:"Mocotó",c:"Brasileira",ll:[-23.4803,-46.6086]},
+  {n:"Maní",c:"Brasileira",ll:[-23.5905,-46.6944]},{n:"A Baianeira",c:"Brasileira",ll:[-23.5375,-46.647]},
+  {n:"Bar da Dona Onça",c:"Brasileira",ll:[-23.5497,-46.642]},{n:"Balaio IMS",c:"Brasileira",ll:[-23.5618,-46.6558]},
+  {n:"Jiquitaia",c:"Brasileira",ll:[-23.556,-46.6435]},{n:"Tan Tan",c:"Asiática",ll:[-23.5585,-46.662]},
+  {n:"Song Qi",c:"Asiática",ll:[-23.588,-46.679]},{n:"Komah",c:"Coreana",ll:[-23.5325,-46.652]},
+  {n:"Evvai",c:"Contemporânea",ll:[-23.576,-46.6875]},{n:"Jacarandá",c:"Contemporânea",ll:[-23.561,-46.686]},
+  {n:"Pobre Juan",c:"Carnes",ll:[-23.5852,-46.679]},{n:"Consulado Mineiro",c:"Boteco",ll:[-23.5588,-46.6725]},
+  {n:"Metzi",c:"Mexicana",ll:[-23.5595,-46.664]},{n:"Notorious Fish",c:"Contemporânea",ll:[-23.564,-46.689]}
+ ];
+ var ST=[["Sé",-23.5503,-46.6339],["Consolação",-23.5578,-46.6603],["Trianon-MASP",-23.5614,-46.6558],["Paulista",-23.5556,-46.662],["Faria Lima",-23.5672,-46.6935],["Pinheiros",-23.5673,-46.7021],["Oscar Freire",-23.5606,-46.6707],["Fradique Coutinho",-23.5661,-46.6862],["Santa Cecília",-23.5379,-46.6535],["Higienópolis-Mackenzie",-23.5477,-46.652],["Brigadeiro",-23.5686,-46.6486],["Vila Mariana",-23.5892,-46.6343]];
+ function hv(a,b,c,d){var R=6371e3,t=x=>x*Math.PI/180,dLa=t(c-a),dLo=t(d-b),s=Math.sin(dLa/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+ function near(ll){var b=null,bd=1e12;ST.forEach(s=>{var dd=hv(ll[0],ll[1],s[1],s[2]);if(dd<bd){bd=dd;b=s[0];}});return{n:b,d:Math.round(bd)};}
+ function hexA(hex,a){var h=hex.replace("#","");return "rgba("+parseInt(h.substr(0,2),16)+","+parseInt(h.substr(2,2),16)+","+parseInt(h.substr(4,2),16)+","+a+")";}
+ var vis={},stF="todos",curCat=null,viewCat=false;
+ var map=L.map("pmap",{scrollWheelZoom:false,attributionControl:false}).setView([-23.56,-46.66],12);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
+ var lay=L.layerGroup().addTo(map),mk={};
+ function isNear(p){return near(p.ll).d<=700;}
+ function drawMap(){lay.clearLayers();var its=viewCat?(curCat==="__t"?P:P.filter(x=>x.c===curCat)):P;var pts=[];
+   its.forEach(p=>{var m=L.circleMarker(p.ll,{radius:7,color:"#0e1512",weight:2,fillColor:CAT[p.c]||"#999",fillOpacity:1}).bindPopup("<b>"+p.n+"</b><br>"+p.c+(isNear(p)?"<br>🚇 "+near(p.ll).n:""));m.addTo(lay);mk[p.n]=m;pts.push(p.ll);});
+   if(viewCat&&pts.length)map.fitBounds(pts,{padding:[25,25],maxZoom:14});else map.setView([-23.56,-46.66],11);}
+ // grid
+ var grid=document.getElementById("pgrid");
+ Object.keys(COUNT).forEach(function(c){var b=document.createElement("div");b.style.cssText="position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:82px;padding:11px;display:flex;flex-direction:column;justify-content:flex-end;border:1px solid "+hexA(CAT[c],.35)+";background:"+hexA(CAT[c],.10)+";";
+   b.innerHTML='<div style="position:absolute;inset:0;opacity:.20;background:'+CAT[c]+'"></div><div style="position:absolute;top:9px;right:11px;font-size:20px;">'+(IC[c]||"🍴")+'</div><div style="position:relative;font-size:14px;font-weight:700;">'+c+'</div><div style="position:relative;font-size:11px;color:#9fb3a8;margin-top:2px;">'+COUNT[c]+' lugares</div>';
+   b.onclick=function(){openCat(c);};grid.appendChild(b);});
+ document.getElementById("pbanAll").onclick=function(){openCat("__t");};
+ document.getElementById("pback").onclick=function(){viewCat=false;curCat=null;document.getElementById("pcat").style.display="none";document.getElementById("phome").style.display="block";drawMap();};
+ document.querySelectorAll("#pstatus .ps").forEach(function(b){b.onclick=function(){stF=b.dataset.st;document.querySelectorAll("#pstatus .ps").forEach(x=>{x.style.background="#15201b";x.style.color="#eaf3ee";x.style.fontWeight="400";});b.style.background="#7ed957";b.style.color="#0e1512";b.style.fontWeight="600";renderList();};});
+ function openCat(c){viewCat=true;curCat=c;stF="todos";document.getElementById("phome").style.display="none";document.getElementById("pcat").style.display="block";
+   document.getElementById("pcatTitle").textContent=c==="__t"?"🗺️ Todas as lojas":((IC[c]||"")+" "+c);
+   document.querySelectorAll("#pstatus .ps").forEach(x=>{var on=x.dataset.st==="todos";x.style.background=on?"#7ed957":"#15201b";x.style.color=on?"#0e1512":"#eaf3ee";x.style.fontWeight=on?"600":"400";});
+   drawMap();renderList();}
+ function pass(p){if(stF==="metro")return isNear(p);if(stF==="fui")return !!vis[p.n];if(stF==="faltam")return !vis[p.n];return true;}
+ function renderList(){var base=curCat==="__t"?P:P.filter(x=>x.c===curCat);var sh=base.filter(pass);
+   var L2=document.getElementById("plist");L2.innerHTML="";
+   if(!sh.length){L2.innerHTML='<div style="text-align:center;color:#9fb3a8;padding:16px;font-size:13px;">Nada com esse filtro.</div>';drawMap();return;}
+   var cc="";
+   sh.forEach(function(p){if(curCat==="__t"&&p.c!==cc){cc=p.c;var g=document.createElement("div");g.style.cssText="font-size:11px;color:#9fb3a8;text-transform:uppercase;letter-spacing:.05em;margin:8px 2px 2px;";g.textContent=cc;L2.appendChild(g);}
+     var done=!!vis[p.n],nr=near(p.ll),nb=nr.d<=700;
+     var row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:10px;background:#15201b;border:1px solid #2a3a30;border-radius:12px;padding:9px;";
+     var chk=document.createElement("button");chk.setAttribute("aria-label","Marcar visitado");chk.style.cssText="flex:none;width:26px;height:26px;border-radius:8px;border:2px solid "+(done?"#1D9E75":"#2a3a30")+";background:"+(done?"#1D9E75":"transparent")+";color:#fff;font-size:15px;cursor:pointer;padding:0;";chk.textContent=done?"✓":"";chk.onclick=function(){if(vis[p.n])delete vis[p.n];else vis[p.n]=1;renderList();};
+     var info=document.createElement("div");info.style.cssText="flex:1;min-width:0;";
+     info.innerHTML='<div style="font-size:14px;font-weight:600;'+(done?'text-decoration:line-through;opacity:.55;':'')+'">'+p.n+'</div><div style="display:flex;gap:7px;align-items:center;margin-top:2px;font-size:11px;"><span style="width:8px;height:8px;border-radius:50%;background:'+(CAT[p.c]||'#999')+';"></span><span style="color:#9fb3a8;">'+p.c+'</span><span style="color:'+(nb?'#7ed957':'#6f8578')+';">🚇 '+nr.n+' · '+nr.d+'m</span></div>';
+     var go=document.createElement("button");go.setAttribute("aria-label","Ver no mapa");go.style.cssText="flex:none;width:34px;height:34px;border-radius:9px;border:1px solid #2a3a30;background:#1c2b23;color:#eaf3ee;font-size:16px;cursor:pointer;padding:0;";go.textContent="◎";go.onclick=function(){map.setView(p.ll,15);mk[p.n].openPopup();};
+     row.appendChild(chk);row.appendChild(info);row.appendChild(go);L2.appendChild(row);});
+   drawMap();}
+ drawMap();setTimeout(()=>map.invalidateSize(),300);
+})();
+</script>
