@@ -252,26 +252,17 @@
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* ===== LOGIN NA NUVEM (Firebase) — cole seu config quando criar o projeto grátis =====
-   1) console.firebase.google.com → Adicionar projeto (grátis)
-   2) Authentication → Começar → ative o provedor "Google"
-   3) Firestore Database → Criar banco (modo produção). Nas Regras, use:
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{database}/documents {
-            match /users/{uid} {
-              allow read, write: if request.auth != null && request.auth.uid == uid;
-            }
-          }
-        }
-   4) Configurações do projeto → Seus apps → Web (</>) → copie o firebaseConfig e cole abaixo
-   5) Authentication → Settings → Domínios autorizados → adicione: SEU-USUARIO.github.io
-   Enquanto os campos ficarem vazios, o app funciona normal (salva só neste aparelho).        */
-const FIREBASE_CONFIG={apiKey:"AIzaSyA-7oPulDJ7848JJ-4Frsb39y2IZxNNTw4",authDomain:"marco-c7671.firebaseapp.com",projectId:"marco-c7671",storageBucket:"marco-c7671.firebasestorage.app",messagingSenderId:"839288175974",appId:"1:839288175974:web:c0b1ee506f280156225ca7",measurementId:"G-0TGSWTJ67M"};
+/* ===== LOGIN + BANCO NA NUVEM (Supabase) =====
+   1) Rode no SQL Editor do Supabase: supabase_schema.sql e depois supabase_seed.sql
+   2) Authentication → Providers → Google → ative (cole Client ID/Secret do Google Cloud;
+      no Google Cloud, URI de redirecionamento = https://SEU-PROJETO.supabase.co/auth/v1/callback)
+   3) Authentication → URL Configuration → Site URL = https://veppomarco-pmm.github.io
+      e adicione essa URL em "Redirect URLs"
+   4) Project Settings → API → copie "Project URL" e a chave "anon public" e cole abaixo
+   Enquanto ficar vazio, o app funciona normal (lista embutida, salva só neste aparelho).      */
+const SUPABASE_URL="", SUPABASE_ANON_KEY="";
 
 const CATS = {
   "Padaria / Café":"#e0a458","Italiana":"#e24b4a","Contemporânea":"#22c55e","Asiática":"#f472b6",
@@ -338,14 +329,15 @@ const SEED_BAIRRO = {
 
 const LS_GEO="rcm_geo_v1", LS_ST="rcm_stations_v1", LS_VIS="rcm_visited_v1", LS_BAIRRO="rcm_bairro_v1", LS_CUSTOM="rcm_custom_v1", LS_NAME="rcm_name_v1";
 let GEO=load(LS_GEO,{}), STATIONS=load(LS_ST,[]), VIS=load(LS_VIS,{}), BAIRRO=load(LS_BAIRRO,{}), CUSTOM=load(LS_CUSTOM,[]), NAME=localStorage.getItem(LS_NAME)||"";
-let view="home", homeTab="cat", base={type:"todas",value:null,title:""}, statusF="todos", query="", USERLOC=null;
+let view="home", homeTab="cat", base={type:"todas",value:null,title:""}, statusF="todos", query="", USERLOC=null, DBROWS=null;
 function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch(e){return d;}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}if(typeof cloudPush==="function"&&(k===LS_VIS||k===LS_CUSTOM))cloudPush();}
 
 let ITEMS=[];
-function buildItems(){ITEMS=[];const seen={};
- for(const cat in DATA){DATA[cat].forEach(nm=>{const k=nm.toLowerCase();if(seen[k])return;seen[k]=1;ITEMS.push({nome:nm,cat});});}
- CUSTOM.forEach(o=>{const k=o.nome.toLowerCase();if(seen[k])return;seen[k]=1;ITEMS.push({nome:o.nome,cat:o.cat});});}
+function buildItems(){ITEMS=[];const seen={};let src;
+ if(DBROWS&&DBROWS.length){src=DBROWS.map(r=>({nome:r.nome,cat:r.categoria}));}
+ else{src=[];for(const cat in DATA)DATA[cat].forEach(nm=>src.push({nome:nm,cat}));CUSTOM.forEach(o=>src.push({nome:o.nome,cat:o.cat}));}
+ src.forEach(o=>{const k=o.nome.toLowerCase();if(seen[k])return;seen[k]=1;ITEMS.push({nome:o.nome,cat:o.cat});});}
 buildItems();
 function catItems(c){return ITEMS.filter(it=>it.cat===c);}
 function bairroOf(it){return BAIRRO[it.nome]||null;}
@@ -517,7 +509,7 @@ function openLoc(nome){locTarget=nome;document.getElementById("locTitle").textCo
 document.getElementById("locClose").onclick=()=>document.getElementById("mLoc").classList.remove("on");
 document.getElementById("locSave").onclick=async()=>{const s=document.getElementById("locInput").value.trim();if(!s||!locTarget)return;
  const btn=document.getElementById("locSave");btn.textContent="Localizando…";const res=await resolveLoc(s);btn.textContent="Localizar";
- if(res){GEO[locTarget]=res.ll;save(LS_GEO,GEO);const br=res.bairro||await reverseBairro(res.ll);if(br){BAIRRO[locTarget]=br;save(LS_BAIRRO,BAIRRO);}
+ if(res){GEO[locTarget]=res.ll;save(LS_GEO,GEO);const br=res.bairro||await reverseBairro(res.ll);if(br){BAIRRO[locTarget]=br;save(LS_BAIRRO,BAIRRO);}sbSaveCoords(locTarget);
    document.getElementById("mLoc").classList.remove("on");drawStats();drawMap();if(view==="cat")renderList();else drawGrid();alert("“"+locTarget+"” localizado!");}
  else alert("Não consegui a partir disso. Cole o endereço completo, ou o link do Google Maps com @latitude,longitude, ou as coordenadas: -23.55, -46.66");};
 document.getElementById("pBulk").onclick=()=>{mProfile.classList.remove("on");document.getElementById("mBulk").classList.add("on");};
@@ -527,31 +519,42 @@ document.getElementById("bulkSave").onclick=async()=>{const lines=document.getEl
    const nome=line.slice(0,idx).trim();const val=line.slice(idx+1).trim();
    const item=ITEMS.find(it=>it.nome.toLowerCase()===nome.toLowerCase());if(!item){fail.push(nome+" (nome não confere)");continue;}
    st.textContent="("+(i+1)+"/"+lines.length+") "+nome+"…";const res=await resolveLoc(val);
-   if(res){GEO[item.nome]=res.ll;save(LS_GEO,GEO);const br=res.bairro||await reverseBairro(res.ll);if(br){BAIRRO[item.nome]=br;save(LS_BAIRRO,BAIRRO);}ok++;}else fail.push(nome);}
+   if(res){GEO[item.nome]=res.ll;save(LS_GEO,GEO);const br=res.bairro||await reverseBairro(res.ll);if(br){BAIRRO[item.nome]=br;save(LS_BAIRRO,BAIRRO);}sbSaveCoords(item.nome);ok++;}else fail.push(nome);}
  drawStats();drawMap();drawGrid();if(view==="cat")renderList();st.innerHTML="✅ Localizados: "+ok+(fail.length?"<br>❌ Falharam: "+fail.join(", "):"");};
 
-/* ---- login na nuvem (Firebase) ---- */
-let fbEnabled=false,auth=null,db=null,uid=null,pushT=null;
-function cloudInit(){
- if(!FIREBASE_CONFIG||!FIREBASE_CONFIG.apiKey){updateAuthUI(null);return;}
- try{firebase.initializeApp(FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();fbEnabled=true;
-   auth.getRedirectResult().catch(()=>{});
-   auth.onAuthStateChanged(u=>{uid=u?u.uid:null;updateAuthUI(u);if(u)cloudPull();});
- }catch(e){fbEnabled=false;updateAuthUI(null);}
+/* ---- login + dados na nuvem (Supabase) ---- */
+let sb=null,uid=null,pushT=null;
+function sbEnabled(){return !!sb;}
+function sbInit(){
+ if(!SUPABASE_URL||!SUPABASE_ANON_KEY||typeof window.supabase==="undefined"){updateAuthUI(null);return;}
+ try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+   loadRestaurants();
+   sb.auth.getSession().then(({data})=>{const u=data&&data.session&&data.session.user;uid=u?u.id:null;updateAuthUI(u);if(u)cloudPull();});
+   sb.auth.onAuthStateChange((_e,session)=>{const u=session&&session.user;uid=u?u.id:null;updateAuthUI(u);if(u)cloudPull();});
+ }catch(e){sb=null;updateAuthUI(null);}
 }
 function updateAuthUI(u){const el=document.getElementById("authStatus"),btn=document.getElementById("authBtn");if(!el)return;
- if(!fbEnabled){el.textContent="Sincronização na nuvem ainda não configurada (só este aparelho).";btn.textContent="Como ativar";return;}
- if(u){el.textContent="✅ Conectado como "+(u.displayName||u.email)+" — sincronizando.";btn.textContent="Sair";}
+ if(!sbEnabled()){el.textContent="Sincronização na nuvem ainda não configurada (só este aparelho).";btn.textContent="Como ativar";return;}
+ if(u){el.textContent="✅ Conectado como "+((u.user_metadata&&u.user_metadata.full_name)||u.email)+" — sincronizando.";btn.textContent="Sair";}
  else{el.textContent="Entre com o Google para sincronizar entre aparelhos.";btn.textContent="Entrar com Google";}}
-function cloudPull(){if(!db||!uid)return;db.collection("users").doc(uid).get().then(doc=>{const d=doc.exists?doc.data():{};
- if(d.vis)for(const k in d.vis)VIS[k]=d.vis[k];localStorage.setItem(LS_VIS,JSON.stringify(VIS));
- if(Array.isArray(d.custom)){const names=new Set(CUSTOM.map(o=>o.nome.toLowerCase()));d.custom.forEach(o=>{if(!names.has(o.nome.toLowerCase()))CUSTOM.push(o);});localStorage.setItem(LS_CUSTOM,JSON.stringify(CUSTOM));buildItems();}
- if(d.name&&!NAME){NAME=d.name;localStorage.setItem(LS_NAME,NAME);applyName();}
- drawStats();drawGrid();drawMap();geocodeAll();cloudPush();}).catch(()=>{});}
-function cloudPush(){if(!db||!uid)return;clearTimeout(pushT);pushT=setTimeout(()=>{db.collection("users").doc(uid).set({vis:VIS,custom:CUSTOM,name:NAME,updated:Date.now()},{merge:true}).catch(()=>{});},800);}
+async function loadRestaurants(){if(!sb)return;
+ try{const {data,error}=await sb.from("restaurants").select("nome,categoria,lat,lng,bairro");
+   if(error||!data||!data.length)return;DBROWS=data;
+   data.forEach(r=>{if(r.lat!=null&&r.lng!=null&&!GEO[r.nome])GEO[r.nome]=[r.lat,r.lng];if(r.bairro&&!BAIRRO[r.nome])BAIRRO[r.nome]=r.bairro;});
+   buildItems();drawStats();if(view==="home")drawGrid();drawMap();geocodeAll();
+ }catch(e){}}
+function cloudPull(){if(!sb||!uid)return;
+ sb.from("profiles").select("name,vis,custom").eq("id",uid).maybeSingle().then(({data})=>{const d=data||{};
+  if(d.vis)for(const k in d.vis)VIS[k]=d.vis[k];localStorage.setItem(LS_VIS,JSON.stringify(VIS));
+  if(Array.isArray(d.custom)){const names=new Set(CUSTOM.map(o=>o.nome.toLowerCase()));d.custom.forEach(o=>{if(!names.has(o.nome.toLowerCase()))CUSTOM.push(o);});localStorage.setItem(LS_CUSTOM,JSON.stringify(CUSTOM));if(!DBROWS)buildItems();}
+  if(d.name&&!NAME){NAME=d.name;localStorage.setItem(LS_NAME,NAME);applyName();}
+  drawStats();drawGrid();drawMap();cloudPush();}).catch(()=>{});}
+function cloudPush(){if(!sb||!uid)return;clearTimeout(pushT);pushT=setTimeout(()=>{sb.from("profiles").upsert({id:uid,name:NAME,vis:VIS,custom:CUSTOM}).then(()=>{}).catch(()=>{});},800);}
+async function sbSaveCoords(nome){if(!sb||!uid)return;const ll=GEO[nome];if(!ll)return;try{await sb.from("restaurants").update({lat:ll[0],lng:ll[1],bairro:BAIRRO[nome]||null}).eq("nome",nome);}catch(e){}}
+async function sbAddRestaurant(nome,cat){if(!sb||!uid)return;try{await sb.from("restaurants").insert({nome:nome,categoria:cat});}catch(e){}}
 document.getElementById("authBtn").onclick=()=>{
- if(!fbEnabled){alert("Para ativar o login: crie um projeto grátis no console.firebase.google.com, ative Authentication (Google) e Firestore, e cole o config no topo do index.html (FIREBASE_CONFIG). O passo a passo está no comentário do arquivo.");return;}
- if(uid){auth.signOut();}else{auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());}};
+ if(!sbEnabled()){alert("Para ativar o login: no painel do Supabase pegue o Project URL e a chave anon (Project Settings → API) e cole no topo do index.html (SUPABASE_URL e SUPABASE_ANON_KEY). Ative também o provedor Google em Authentication → Providers.");return;}
+ if(uid){sb.auth.signOut();}else{sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href.split("#")[0]}});}};
 
 /* ---- adicionar restaurante ---- */
 const mAdd=document.getElementById("mAdd");
@@ -561,10 +564,11 @@ document.getElementById("aClose").onclick=()=>mAdd.classList.remove("on");
 document.getElementById("aSave").onclick=async()=>{const nome=document.getElementById("aName").value.trim();const cat=aCat.value;const addr=document.getElementById("aAddr").value.trim();
  if(!nome){alert("Digite o nome.");return;}
  if(ITEMS.some(it=>it.nome.toLowerCase()===nome.toLowerCase())){alert("Esse nome já existe na lista.");return;}
- CUSTOM.push({nome,cat});save(LS_CUSTOM,CUSTOM);buildItems();mAdd.classList.remove("on");
+ if(DBROWS)DBROWS.push({nome:nome,categoria:cat,lat:null,lng:null,bairro:null});
+ CUSTOM.push({nome,cat});save(LS_CUSTOM,CUSTOM);buildItems();sbAddRestaurant(nome,cat);mAdd.classList.remove("on");
  drawStats();drawGrid();
  const res = addr ? await geocodeQuery(nome+", "+addr+", São Paulo, SP",false) : await geocodeName(nome);
- if(res){GEO[nome]=res.ll;save(LS_GEO,GEO);if(res.bairro){BAIRRO[nome]=res.bairro;save(LS_BAIRRO,BAIRRO);}drawStats();drawGrid();drawMap();
+ if(res){GEO[nome]=res.ll;save(LS_GEO,GEO);if(res.bairro){BAIRRO[nome]=res.bairro;save(LS_BAIRRO,BAIRRO);}sbSaveCoords(nome);drawStats();drawGrid();drawMap();
    alert("“"+nome+"” adicionado e localizado no mapa!");}
  else alert("“"+nome+"” adicionado. Não consegui localizar automático — tente adicionar um endereço/bairro.");};
 
@@ -604,8 +608,8 @@ async function geocodeAll(){if(geoRunning)return;geoRunning=true;
  prog.style.display="flex";let done=0;const falhas=[];
  for(const it of todo){txt.textContent="Localizando "+it.nome+"…";
    if(!GEO[it.nome]){const res=await geocodeName(it.nome);
-     if(res){GEO[it.nome]=res.ll;save(LS_GEO,GEO);if(res.bairro){BAIRRO[it.nome]=res.bairro;save(LS_BAIRRO,BAIRRO);}}else falhas.push(it.nome);}
-   else if(!BAIRRO[it.nome]){const br=await reverseBairro(GEO[it.nome]);if(br){BAIRRO[it.nome]=br;save(LS_BAIRRO,BAIRRO);}}
+     if(res){GEO[it.nome]=res.ll;save(LS_GEO,GEO);if(res.bairro){BAIRRO[it.nome]=res.bairro;save(LS_BAIRRO,BAIRRO);}sbSaveCoords(it.nome);}else falhas.push(it.nome);}
+   else if(!BAIRRO[it.nome]){const br=await reverseBairro(GEO[it.nome]);if(br){BAIRRO[it.nome]=br;save(LS_BAIRRO,BAIRRO);sbSaveCoords(it.nome);}}
    done++;bar.style.width=Math.round(done/todo.length*100)+"%";
    if(done%5===0){drawStats();drawMap();if(view==="home")drawGrid();else renderList();}}
  drawStats();drawMap();if(view==="home")drawGrid();else renderList();prog.style.display="none";
@@ -616,7 +620,7 @@ async function geocodeAll(){if(geoRunning)return;geoRunning=true;
 applyName();goHome();
 setTimeout(()=>map.invalidateSize(),300);
 setTimeout(()=>locate({silent:true}),1200);
-cloudInit();
+sbInit();
 (async()=>{if(STATIONS.length<=ST_FALLBACK.length)await fetchStations();drawStats();drawMap();drawStations();geocodeAll();})();
 </script>
 </body>
