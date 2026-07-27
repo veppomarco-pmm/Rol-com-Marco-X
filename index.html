@@ -34,7 +34,7 @@
   .search .clr{position:absolute;right:12px;top:11px;width:30px;height:30px;border:none;background:var(--panel2);color:var(--txt);border-radius:8px;font-size:16px;cursor:pointer;display:none;}
 
   #mapwrap{position:relative;margin:12px 0 0;}
-  #map{height:clamp(320px,48dvh,600px);width:100%;background:#0a1526;z-index:1;}
+  #map{height:clamp(320px,48dvh,600px);width:100%;background:#e7edf5;z-index:1;}
   #mapHint{position:absolute;left:14px;bottom:14px;z-index:400;background:rgba(11,18,32,.82);border:1px solid var(--line);
     color:var(--txt);font-size:13px;padding:8px 12px;border-radius:999px;display:flex;align-items:center;gap:6px;pointer-events:none;}
   .mapbtn{position:absolute;z-index:400;width:50px;height:50px;border-radius:13px;background:rgba(11,18,32,.85);
@@ -202,6 +202,10 @@
 <!-- modal perfil -->
 <div class="modal" id="mProfile"><div class="sheet">
   <h3>Perfil e backup</h3>
+  <div id="authBox" style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;">
+    <div id="authStatus" style="font-size:13px;color:var(--mut);margin-bottom:10px;">Sincronização na nuvem</div>
+    <button class="full" id="authBtn" style="margin-top:0;">Entrar com Google</button>
+  </div>
   <label>Seu nome</label>
   <input id="pName" placeholder="Marco"/>
   <p style="color:var(--mut);font-size:13px;margin:14px 2px 0;">Seu progresso (visitados + restaurantes adicionados) fica salvo neste aparelho. Use o backup abaixo para não perder ou levar pra outro celular.</p>
@@ -248,7 +252,27 @@
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+/* ===== LOGIN NA NUVEM (Firebase) — cole seu config quando criar o projeto grátis =====
+   1) console.firebase.google.com → Adicionar projeto (grátis)
+   2) Authentication → Começar → ative o provedor "Google"
+   3) Firestore Database → Criar banco (modo produção). Nas Regras, use:
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /users/{uid} {
+              allow read, write: if request.auth != null && request.auth.uid == uid;
+            }
+          }
+        }
+   4) Configurações do projeto → Seus apps → Web (</>) → copie o firebaseConfig e cole abaixo
+   5) Authentication → Settings → Domínios autorizados → adicione: SEU-USUARIO.github.io
+   Enquanto os campos ficarem vazios, o app funciona normal (salva só neste aparelho).        */
+const FIREBASE_CONFIG={apiKey:"AIzaSyA-7oPulDJ7848JJ-4Frsb39y2IZxNNTw4",authDomain:"marco-c7671.firebaseapp.com",projectId:"marco-c7671",storageBucket:"marco-c7671.firebasestorage.app",messagingSenderId:"839288175974",appId:"1:839288175974:web:c0b1ee506f280156225ca7",measurementId:"G-0TGSWTJ67M"};
+
 const CATS = {
   "Padaria / Café":"#e0a458","Italiana":"#e24b4a","Contemporânea":"#22c55e","Asiática":"#f472b6",
   "Peruana":"#d97706","Francesa":"#6c8cff","Tapas":"#c084fc","Mexicana":"#f59e0b","Mediterrânea":"#22c1a6",
@@ -316,7 +340,7 @@ const LS_GEO="rcm_geo_v1", LS_ST="rcm_stations_v1", LS_VIS="rcm_visited_v1", LS_
 let GEO=load(LS_GEO,{}), STATIONS=load(LS_ST,[]), VIS=load(LS_VIS,{}), BAIRRO=load(LS_BAIRRO,{}), CUSTOM=load(LS_CUSTOM,[]), NAME=localStorage.getItem(LS_NAME)||"";
 let view="home", homeTab="cat", base={type:"todas",value:null,title:""}, statusF="todos", query="", USERLOC=null;
 function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch(e){return d;}}
-function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}if(typeof cloudPush==="function"&&(k===LS_VIS||k===LS_CUSTOM))cloudPush();}
 
 let ITEMS=[];
 function buildItems(){ITEMS=[];const seen={};
@@ -328,7 +352,7 @@ function bairroOf(it){return BAIRRO[it.nome]||null;}
 
 /* mapa */
 const map=L.map("map",{zoomControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:true,attributionControl:false}).setView([-23.556,-46.66],12);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:20,subdomains:"abcd"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{maxZoom:20,subdomains:"abcd"}).addTo(map);
 const layer=L.layerGroup().addTo(map);const stationLayer=L.layerGroup().addTo(map);const markers={};let isFull=false;let showStations=true;
 const mapwrap=document.getElementById("mapwrap");
 function enterFull(focus){isFull=true;mapwrap.classList.add("full");document.body.classList.add("noscroll");
@@ -373,7 +397,8 @@ const ST_FALLBACK=[
  ["Pedro II",-23.5479,-46.6274],["Palmeiras-Barra Funda",-23.5266,-46.6659]
 ].map(s=>({name:s[0],lat:s[1],lng:s[2]}));
 if(!STATIONS.length)STATIONS=ST_FALLBACK.slice();
-function drawStations(){stationLayer.clearLayers();if(!showStations)return;STATIONS.forEach(s=>{L.circleMarker([s.lat,s.lng],{radius:5,color:"#fff",weight:1.5,fillColor:"#e11d5a",fillOpacity:.95}).bindPopup("🚇 "+s.name).addTo(stationLayer);});}
+const METRO_ICON=L.divIcon({className:"metro-badge",html:'<div style="width:22px;height:22px;background:#1f2937;border:2px solid #fff;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,.45)">M</div>',iconSize:[22,22],iconAnchor:[11,11]});
+function drawStations(){stationLayer.clearLayers();if(!showStations)return;STATIONS.forEach(s=>{L.marker([s.lat,s.lng],{icon:METRO_ICON,keyboard:false}).bindPopup("🚇 "+s.name).addTo(stationLayer);});}
 document.getElementById("metroBtn").onclick=e=>{e.stopPropagation();showStations=!showStations;document.getElementById("metroBtn").style.opacity=showStations?"1":".45";drawStations();};
 drawStations();
 
@@ -477,13 +502,13 @@ const mProfile=document.getElementById("mProfile");
 function applyName(){document.getElementById("subtitle").textContent=NAME?("Olá, "+NAME+" 👋"):"Restaurantes pra visitar em São Paulo";}
 document.getElementById("profileBtn").onclick=()=>{document.getElementById("pName").value=NAME;mProfile.classList.add("on");};
 document.getElementById("pClose").onclick=()=>mProfile.classList.remove("on");
-document.getElementById("pSave").onclick=()=>{NAME=document.getElementById("pName").value.trim();localStorage.setItem(LS_NAME,NAME);applyName();mProfile.classList.remove("on");};
+document.getElementById("pSave").onclick=()=>{NAME=document.getElementById("pName").value.trim();localStorage.setItem(LS_NAME,NAME);applyName();if(typeof cloudPush==="function")cloudPush();mProfile.classList.remove("on");};
 document.getElementById("pExport").onclick=async()=>{const backup=JSON.stringify({v:1,name:NAME,vis:VIS,custom:CUSTOM});
  try{await navigator.clipboard.writeText(backup);alert("Backup copiado! Cole num lugar seguro (bloco de notas, e-mail).");}
  catch(e){prompt("Copie seu backup:",backup);}};
 document.getElementById("pImport").onclick=()=>{const s=prompt("Cole aqui o seu backup:");if(!s)return;
  try{const o=JSON.parse(s);if(o.vis){VIS=o.vis;save(LS_VIS,VIS);}if(o.custom){CUSTOM=o.custom;save(LS_CUSTOM,CUSTOM);buildItems();}if(o.name){NAME=o.name;localStorage.setItem(LS_NAME,NAME);applyName();}
-   drawStats();drawGrid();alert("Backup restaurado!");mProfile.classList.remove("on");geocodeAll();}
+   drawStats();drawGrid();alert("Backup restaurado!");mProfile.classList.remove("on");if(typeof cloudPush==="function")cloudPush();geocodeAll();}
  catch(e){alert("Backup inválido.");}};
 
 /* ---- corrigir localização (endereço / link / coordenadas) ---- */
@@ -504,6 +529,29 @@ document.getElementById("bulkSave").onclick=async()=>{const lines=document.getEl
    st.textContent="("+(i+1)+"/"+lines.length+") "+nome+"…";const res=await resolveLoc(val);
    if(res){GEO[item.nome]=res.ll;save(LS_GEO,GEO);const br=res.bairro||await reverseBairro(res.ll);if(br){BAIRRO[item.nome]=br;save(LS_BAIRRO,BAIRRO);}ok++;}else fail.push(nome);}
  drawStats();drawMap();drawGrid();if(view==="cat")renderList();st.innerHTML="✅ Localizados: "+ok+(fail.length?"<br>❌ Falharam: "+fail.join(", "):"");};
+
+/* ---- login na nuvem (Firebase) ---- */
+let fbEnabled=false,auth=null,db=null,uid=null,pushT=null;
+function cloudInit(){
+ if(!FIREBASE_CONFIG||!FIREBASE_CONFIG.apiKey){updateAuthUI(null);return;}
+ try{firebase.initializeApp(FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();fbEnabled=true;
+   auth.getRedirectResult().catch(()=>{});
+   auth.onAuthStateChanged(u=>{uid=u?u.uid:null;updateAuthUI(u);if(u)cloudPull();});
+ }catch(e){fbEnabled=false;updateAuthUI(null);}
+}
+function updateAuthUI(u){const el=document.getElementById("authStatus"),btn=document.getElementById("authBtn");if(!el)return;
+ if(!fbEnabled){el.textContent="Sincronização na nuvem ainda não configurada (só este aparelho).";btn.textContent="Como ativar";return;}
+ if(u){el.textContent="✅ Conectado como "+(u.displayName||u.email)+" — sincronizando.";btn.textContent="Sair";}
+ else{el.textContent="Entre com o Google para sincronizar entre aparelhos.";btn.textContent="Entrar com Google";}}
+function cloudPull(){if(!db||!uid)return;db.collection("users").doc(uid).get().then(doc=>{const d=doc.exists?doc.data():{};
+ if(d.vis)for(const k in d.vis)VIS[k]=d.vis[k];localStorage.setItem(LS_VIS,JSON.stringify(VIS));
+ if(Array.isArray(d.custom)){const names=new Set(CUSTOM.map(o=>o.nome.toLowerCase()));d.custom.forEach(o=>{if(!names.has(o.nome.toLowerCase()))CUSTOM.push(o);});localStorage.setItem(LS_CUSTOM,JSON.stringify(CUSTOM));buildItems();}
+ if(d.name&&!NAME){NAME=d.name;localStorage.setItem(LS_NAME,NAME);applyName();}
+ drawStats();drawGrid();drawMap();geocodeAll();cloudPush();}).catch(()=>{});}
+function cloudPush(){if(!db||!uid)return;clearTimeout(pushT);pushT=setTimeout(()=>{db.collection("users").doc(uid).set({vis:VIS,custom:CUSTOM,name:NAME,updated:Date.now()},{merge:true}).catch(()=>{});},800);}
+document.getElementById("authBtn").onclick=()=>{
+ if(!fbEnabled){alert("Para ativar o login: crie um projeto grátis no console.firebase.google.com, ative Authentication (Google) e Firestore, e cole o config no topo do index.html (FIREBASE_CONFIG). O passo a passo está no comentário do arquivo.");return;}
+ if(uid){auth.signOut();}else{auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());}};
 
 /* ---- adicionar restaurante ---- */
 const mAdd=document.getElementById("mAdd");
@@ -568,6 +616,7 @@ async function geocodeAll(){if(geoRunning)return;geoRunning=true;
 applyName();goHome();
 setTimeout(()=>map.invalidateSize(),300);
 setTimeout(()=>locate({silent:true}),1200);
+cloudInit();
 (async()=>{if(STATIONS.length<=ST_FALLBACK.length)await fetchStations();drawStats();drawMap();drawStations();geocodeAll();})();
 </script>
 </body>
