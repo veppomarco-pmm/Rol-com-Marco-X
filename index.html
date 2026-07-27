@@ -41,6 +41,7 @@
     border:1px solid var(--line);color:var(--txt);font-size:23px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   #expandBtn{right:14px;top:14px;}
   #locateBtn{left:14px;top:14px;}
+  #metroBtn{left:14px;top:72px;}
   #mapwrap.full{position:fixed;inset:0;margin:0;z-index:9999;}
   #mapwrap.full #map{height:100dvh;height:100vh;}
   #closeBtn{display:none;right:14px;top:calc(14px + var(--sat));width:54px;height:54px;font-size:26px;}
@@ -49,6 +50,7 @@
   #mapwrap.full #closeBtn,#mapwrap.full #gmapsArea{display:flex;}
   #mapwrap.full #expandBtn,#mapwrap.full #mapHint{display:none;}
   #mapwrap.full #locateBtn{top:calc(14px + var(--sat));}
+  #mapwrap.full #metroBtn{top:calc(72px + var(--sat));}
 
   .stats{display:flex;gap:9px;padding:12px 18px 4px;}
   .stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;position:relative;transition:border-color .15s;}
@@ -145,6 +147,7 @@
   <div id="mapwrap">
     <div id="map"></div>
     <button id="locateBtn" class="mapbtn" aria-label="Minha localização">📍</button>
+    <button id="metroBtn" class="mapbtn" aria-label="Mostrar estações de metrô">🚇</button>
     <button id="expandBtn" class="mapbtn" aria-label="Abrir mapa em tela cheia">⛶</button>
     <div id="mapHint">👆 toque no mapa para tela cheia</div>
     <button id="closeBtn" class="mapbtn" aria-label="Fechar tela cheia">✕</button>
@@ -204,6 +207,7 @@
   <p style="color:var(--mut);font-size:13px;margin:14px 2px 0;">Seu progresso (visitados + restaurantes adicionados) fica salvo neste aparelho. Use o backup abaixo para não perder ou levar pra outro celular.</p>
   <button class="full" id="pExport">📤 Copiar meu backup</button>
   <button class="full" id="pImport">📥 Restaurar de um backup</button>
+  <button class="full" id="pBulk">📍 Corrigir vários lugares (endereços)</button>
   <div class="row">
     <button class="primary" id="pSave">Salvar</button>
     <button class="ghost" id="pClose">Fechar</button>
@@ -225,6 +229,24 @@
   </div>
 </div></div>
 
+<!-- modal ajustar localização -->
+<div class="modal" id="mLoc"><div class="sheet">
+  <h3 id="locTitle">Ajustar localização</h3>
+  <p style="color:var(--mut);font-size:13px;margin:0 2px 6px">Cole o <b>endereço</b>, um <b>link do Google Maps</b> (que tenha @latitude,longitude) ou <b>coordenadas</b> no formato "-23.55, -46.66".</p>
+  <label>Endereço, link ou coordenadas</label>
+  <input id="locInput" placeholder="Ex.: Rua Aspicuelta 123, Vila Madalena"/>
+  <div class="row"><button class="primary" id="locSave">Localizar</button><button class="ghost" id="locClose">Cancelar</button></div>
+</div></div>
+
+<!-- modal em massa -->
+<div class="modal" id="mBulk"><div class="sheet">
+  <h3>Corrigir vários lugares</h3>
+  <p style="color:var(--mut);font-size:13px;margin:0 2px 6px">Uma linha por lugar, no formato <b>Nome = endereço</b> (também aceita link do Google Maps ou coordenadas). Ex.:<br>Tectônica = Rua Harmonia 123, Vila Madalena<br>Nica Café = -23.55, -46.66</p>
+  <textarea id="bulkInput" placeholder="Nome = endereço"></textarea>
+  <div class="row"><button class="primary" id="bulkSave">Localizar todos</button><button class="ghost" id="bulkClose">Fechar</button></div>
+  <div id="bulkStatus" style="color:var(--mut);font-size:13px;margin-top:10px"></div>
+</div></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const CATS = {
@@ -232,13 +254,13 @@ const CATS = {
   "Peruana":"#d97706","Francesa":"#6c8cff","Tapas":"#c084fc","Mexicana":"#f59e0b","Mediterrânea":"#22c1a6",
   "Alemã":"#a8763e","Boteco":"#f0997b","Brasileira":"#4ade80","Frutos do Mar":"#38bdf8","Carnes":"#ef5350",
   "Pizza":"#fbbf24","Saudável":"#86efac","Hambúrguer":"#fb923c","Lanchonete":"#facc15","Japonesa":"#f9a8d4",
-  "Coreana":"#c026d3","Experiências":"#a78bfa","Bar":"#60a5fa","A organizar":"#94a3b8"
+  "Coreana":"#c026d3","Experiências":"#a78bfa","Bar":"#60a5fa"
 };
 const ICONS = {
   "Padaria / Café":"🥐","Italiana":"🍝","Contemporânea":"🍽️","Asiática":"🥢","Peruana":"🌶️","Francesa":"🥖",
   "Tapas":"🫒","Mexicana":"🌮","Mediterrânea":"🧆","Alemã":"🍺","Boteco":"🍢","Brasileira":"🇧🇷",
   "Frutos do Mar":"🦐","Carnes":"🥩","Pizza":"🍕","Saudável":"🥗","Hambúrguer":"🍔","Lanchonete":"🥪",
-  "Japonesa":"🍣","Coreana":"🍲","Experiências":"🎵","Bar":"🍸","A organizar":"📌"
+  "Japonesa":"🍣","Coreana":"🍲","Experiências":"🎵","Bar":"🍸"
 };
 const DATA = {
 "Padaria / Café":["Tectônica","Pato Rei","ZDeli Brunch","Nica Café","Bruncheria","Padoca Filosófica","Salt Bakery","Botanikafé","Café Habitual","Dois Tropicos","Tahan","Le Jazz Boulangerie","Carmella","Futuro Refeitório","Deus Mansion","Santiago","Mich Mich"],
@@ -262,9 +284,18 @@ const DATA = {
 "Japonesa":["Geiko San","Sushi Hiroshi Santana","Koy 88","Standing Sushi","Gorumê","Tanuki Sushi","Papaia","Oguru"],
 "Coreana":["Komah"],
 "Experiências":["Blue Note"],
-"Bar":["Plek","Cazzo","Litta","Fugaz"],
-"A organizar":["Pitéu Bar","Caracolla","O Escandinavo","Lolla Meets Fire","Naia Restaurante","Nelita","Cora","Casca Gastrobar","Pippo Limone","Zena","Acropolis","Béni Sushi","Adega Santiago","Bar Simpatia","Papaya Café","Casarìa","Pipo","Cuia","Tasca da Esquina","Tuy Bar Cocina","Casa de Francisca","Bistrot de Paris","Congolinari","Deli doner","Tratoria Tavolino","Evvai","Xulipa","Rota do Acarajé"]
+"Bar":["Plek","Cazzo","Litta","Fugaz"]
 };
+const REASSIGN={
+ "Pitéu Bar":"Boteco","Caracolla":"Contemporânea","O Escandinavo":"Contemporânea","Lolla Meets Fire":"Carnes",
+ "Naia Restaurante":"Contemporânea","Nelita":"Contemporânea","Cora":"Contemporânea","Casca Gastrobar":"Bar",
+ "Pippo Limone":"Italiana","Zena":"Italiana","Acropolis":"Mediterrânea","Béni Sushi":"Japonesa",
+ "Adega Santiago":"Tapas","Bar Simpatia":"Bar","Papaya Café":"Padaria / Café","Casarìa":"Contemporânea",
+ "Pipo":"Contemporânea","Cuia":"Brasileira","Tasca da Esquina":"Tapas","Tuy Bar Cocina":"Bar",
+ "Casa de Francisca":"Experiências","Bistrot de Paris":"Francesa","Congolinari":"Italiana","Deli doner":"Mediterrânea",
+ "Tratoria Tavolino":"Italiana","Evvai":"Contemporânea","Xulipa":"Bar","Rota do Acarajé":"Brasileira"
+};
+for(const nm in REASSIGN){const c=REASSIGN[nm];if(!DATA[c])DATA[c]=[];DATA[c].push(nm);}
 const SEED = {
  "DOM":[-23.5615,-46.6717],"Dalva e Dito":[-23.5622,-46.669],"Casa do Porco":[-23.5455,-46.639],
  "Mocotó":[-23.4803,-46.6086],"Maní":[-23.5905,-46.6944],"A Baianeira":[-23.5375,-46.647],
@@ -297,8 +328,8 @@ function bairroOf(it){return BAIRRO[it.nome]||null;}
 
 /* mapa */
 const map=L.map("map",{zoomControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:true,attributionControl:false}).setView([-23.556,-46.66],12);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
-const layer=L.layerGroup().addTo(map);const markers={};let isFull=false;
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:20,subdomains:"abcd"}).addTo(map);
+const layer=L.layerGroup().addTo(map);const stationLayer=L.layerGroup().addTo(map);const markers={};let isFull=false;let showStations=true;
 const mapwrap=document.getElementById("mapwrap");
 function enterFull(focus){isFull=true;mapwrap.classList.add("full");document.body.classList.add("noscroll");
  map.dragging.enable();map.scrollWheelZoom.enable();map.doubleClickZoom.enable();map.touchZoom.enable();
@@ -342,6 +373,9 @@ const ST_FALLBACK=[
  ["Pedro II",-23.5479,-46.6274],["Palmeiras-Barra Funda",-23.5266,-46.6659]
 ].map(s=>({name:s[0],lat:s[1],lng:s[2]}));
 if(!STATIONS.length)STATIONS=ST_FALLBACK.slice();
+function drawStations(){stationLayer.clearLayers();if(!showStations)return;STATIONS.forEach(s=>{L.circleMarker([s.lat,s.lng],{radius:5,color:"#fff",weight:1.5,fillColor:"#e11d5a",fillOpacity:.95}).bindPopup("🚇 "+s.name).addTo(stationLayer);});}
+document.getElementById("metroBtn").onclick=e=>{e.stopPropagation();showStations=!showStations;document.getElementById("metroBtn").style.opacity=showStations?"1":".45";drawStations();};
+drawStations();
 
 function haversine(a,b,c,d){const R=6371000,t=x=>x*Math.PI/180;const dLat=t(c-a),dLng=t(d-b);
  const s=Math.sin(dLat/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
@@ -424,7 +458,10 @@ function renderList(){const shown=shownItems();const total=listBase().length;
    const bMap=document.createElement("button");bMap.className="btn";bMap.innerHTML='<i>◎</i> Ver no mapa';
    bMap.onclick=()=>{if(!p){alert("Ainda localizando este lugar. Tente em instantes.");return;}enterFull(p);setTimeout(()=>{if(markers[it.nome])markers[it.nome].openPopup();},250);};
    const bDir=document.createElement("a");bDir.className="btn dir";bDir.href=gmapsDir(it);bDir.target="_blank";bDir.rel="noopener";bDir.innerHTML='<i>➤</i> Direções';
-   acts.appendChild(bMap);acts.appendChild(bDir);card.appendChild(top);card.appendChild(acts);list.appendChild(card);
+   acts.appendChild(bMap);acts.appendChild(bDir);
+   const fix=document.createElement("button");fix.className="btn";fix.style.marginTop="8px";fix.style.width="100%";fix.innerHTML='<i>✎</i> '+(p?'Ajustar local':'Localizar pelo endereço/link');
+   fix.onclick=()=>openLoc(it.nome);
+   card.appendChild(top);card.appendChild(acts);card.appendChild(fix);list.appendChild(card);
  });drawMap();}
 
 document.querySelectorAll("#statusChips .chip").forEach(b=>{b.onclick=()=>{statusF=b.dataset.st;
@@ -449,6 +486,25 @@ document.getElementById("pImport").onclick=()=>{const s=prompt("Cole aqui o seu 
    drawStats();drawGrid();alert("Backup restaurado!");mProfile.classList.remove("on");geocodeAll();}
  catch(e){alert("Backup inválido.");}};
 
+/* ---- corrigir localização (endereço / link / coordenadas) ---- */
+let locTarget=null;
+function openLoc(nome){locTarget=nome;document.getElementById("locTitle").textContent="Localizar: "+nome;document.getElementById("locInput").value="";document.getElementById("mLoc").classList.add("on");}
+document.getElementById("locClose").onclick=()=>document.getElementById("mLoc").classList.remove("on");
+document.getElementById("locSave").onclick=async()=>{const s=document.getElementById("locInput").value.trim();if(!s||!locTarget)return;
+ const btn=document.getElementById("locSave");btn.textContent="Localizando…";const res=await resolveLoc(s);btn.textContent="Localizar";
+ if(res){GEO[locTarget]=res.ll;save(LS_GEO,GEO);const br=res.bairro||await reverseBairro(res.ll);if(br){BAIRRO[locTarget]=br;save(LS_BAIRRO,BAIRRO);}
+   document.getElementById("mLoc").classList.remove("on");drawStats();drawMap();if(view==="cat")renderList();else drawGrid();alert("“"+locTarget+"” localizado!");}
+ else alert("Não consegui a partir disso. Cole o endereço completo, ou o link do Google Maps com @latitude,longitude, ou as coordenadas: -23.55, -46.66");};
+document.getElementById("pBulk").onclick=()=>{mProfile.classList.remove("on");document.getElementById("mBulk").classList.add("on");};
+document.getElementById("bulkClose").onclick=()=>document.getElementById("mBulk").classList.remove("on");
+document.getElementById("bulkSave").onclick=async()=>{const lines=document.getElementById("bulkInput").value.split("\n").map(x=>x.trim()).filter(Boolean);const st=document.getElementById("bulkStatus");let ok=0;const fail=[];
+ for(let i=0;i<lines.length;i++){const line=lines[i];let idx=line.indexOf("=");if(idx<0)idx=line.indexOf("|");if(idx<0){fail.push(line+" (falta o =)");continue;}
+   const nome=line.slice(0,idx).trim();const val=line.slice(idx+1).trim();
+   const item=ITEMS.find(it=>it.nome.toLowerCase()===nome.toLowerCase());if(!item){fail.push(nome+" (nome não confere)");continue;}
+   st.textContent="("+(i+1)+"/"+lines.length+") "+nome+"…";const res=await resolveLoc(val);
+   if(res){GEO[item.nome]=res.ll;save(LS_GEO,GEO);const br=res.bairro||await reverseBairro(res.ll);if(br){BAIRRO[item.nome]=br;save(LS_BAIRRO,BAIRRO);}ok++;}else fail.push(nome);}
+ drawStats();drawMap();drawGrid();if(view==="cat")renderList();st.innerHTML="✅ Localizados: "+ok+(fail.length?"<br>❌ Falharam: "+fail.join(", "):"");};
+
 /* ---- adicionar restaurante ---- */
 const mAdd=document.getElementById("mAdd");
 const aCat=document.getElementById("aCat");Object.keys(CATS).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;aCat.appendChild(o);});
@@ -459,8 +515,7 @@ document.getElementById("aSave").onclick=async()=>{const nome=document.getElemen
  if(ITEMS.some(it=>it.nome.toLowerCase()===nome.toLowerCase())){alert("Esse nome já existe na lista.");return;}
  CUSTOM.push({nome,cat});save(LS_CUSTOM,CUSTOM);buildItems();mAdd.classList.remove("on");
  drawStats();drawGrid();
- const q=(addr?nome+", "+addr:nome)+", São Paulo, SP";
- const res=await geocodeQuery(q);
+ const res = addr ? await geocodeQuery(nome+", "+addr+", São Paulo, SP",false) : await geocodeName(nome);
  if(res){GEO[nome]=res.ll;save(LS_GEO,GEO);if(res.bairro){BAIRRO[nome]=res.bairro;save(LS_BAIRRO,BAIRRO);}drawStats();drawGrid();drawMap();
    alert("“"+nome+"” adicionado e localizado no mapa!");}
  else alert("“"+nome+"” adicionado. Não consegui localizar automático — tente adicionar um endereço/bairro.");};
@@ -473,11 +528,24 @@ async function fetchStations(){try{
   if(arr.length>20){STATIONS=arr;save(LS_ST,STATIONS);}}catch(e){}}
 function pickBairro(a){if(!a)return null;return a.suburb||a.neighbourhood||a.city_district||a.quarter||a.borough||a.town||null;}
 const SP={vb:"-46.83,-24.02,-46.36,-23.36"};
-async function geocodeQuery(q){const url="https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=br&viewbox="+SP.vb+"&bounded=1&q="+encodeURIComponent(q);
+let _last=0;async function throttle(){const w=Math.max(0,1150-(Date.now()-_last));if(w)await new Promise(r=>setTimeout(r,w));_last=Date.now();}
+function inSP(ll){return ll[0]<-23.2&&ll[0]>-24.25&&ll[1]<-46.2&&ll[1]>-47.15;}
+async function geocodeQuery(q,bounded){if(bounded===undefined)bounded=true;await throttle();
+ const url="https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=br&viewbox="+SP.vb+(bounded?"&bounded=1":"")+"&q="+encodeURIComponent(q);
  try{const r=await fetch(url,{headers:{"Accept-Language":"pt-BR"}});const j=await r.json();
    if(j&&j[0])return {ll:[parseFloat(j[0].lat),parseFloat(j[0].lon)],bairro:pickBairro(j[0].address)};}catch(e){}return null;}
-async function reverseBairro(ll){const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=16&lat="+ll[0]+"&lon="+ll[1];
+async function geocodeName(nome){const tries=[[nome+", São Paulo, SP",true],[nome+" restaurante São Paulo",false]];
+ for(const t of tries){const res=await geocodeQuery(t[0],t[1]);if(res&&inSP(res.ll))return res;}return null;}
+async function reverseBairro(ll){await throttle();const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=16&lat="+ll[0]+"&lon="+ll[1];
  try{const r=await fetch(url,{headers:{"Accept-Language":"pt-BR"}});const j=await r.json();return pickBairro(j&&j.address);}catch(e){return null;}}
+function parseLatLng(s){if(!s)return null;let m;const f=mm=>{const a=parseFloat(mm[1]),b=parseFloat(mm[2]);return (a<6&&a>-34&&b<-30&&b>-75)?[a,b]:null;};
+ m=s.match(/@(-?\d{1,2}\.\d{3,}),(-?\d{1,3}\.\d{3,})/);if(m)return f(m);
+ m=s.match(/!3d(-?\d{1,2}\.\d{3,})!4d(-?\d{1,3}\.\d{3,})/);if(m)return f(m);
+ m=s.match(/(?:q=|ll=|destination=|daddr=)(-?\d{1,2}\.\d{3,}),(-?\d{1,3}\.\d{3,})/);if(m)return f(m);
+ m=s.match(/^\s*(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})\s*$/);if(m)return f(m);
+ return null;}
+async function resolveLoc(str){str=(str||"").trim();if(!str)return null;const c=parseLatLng(str);if(c)return {ll:c,bairro:null};
+ const q=/s[ãa]o paulo/i.test(str)?str:str+", São Paulo, SP";return await geocodeQuery(q,false);}
 let geoRunning=false;
 async function geocodeAll(){if(geoRunning)return;geoRunning=true;
  for(const nm in SEED){if(!GEO[nm])GEO[nm]=SEED[nm];}for(const nm in SEED_BAIRRO){if(!BAIRRO[nm])BAIRRO[nm]=SEED_BAIRRO[nm];}
@@ -487,21 +555,20 @@ async function geocodeAll(){if(geoRunning)return;geoRunning=true;
  if(!todo.length){document.getElementById("foot").textContent="Todos localizados · "+ITEMS.length+" restaurantes.";geoRunning=false;return;}
  prog.style.display="flex";let done=0;const falhas=[];
  for(const it of todo){txt.textContent="Localizando "+it.nome+"…";
-   if(!GEO[it.nome]){const res=await geocodeQuery(it.nome+", São Paulo, SP");
+   if(!GEO[it.nome]){const res=await geocodeName(it.nome);
      if(res){GEO[it.nome]=res.ll;save(LS_GEO,GEO);if(res.bairro){BAIRRO[it.nome]=res.bairro;save(LS_BAIRRO,BAIRRO);}}else falhas.push(it.nome);}
    else if(!BAIRRO[it.nome]){const br=await reverseBairro(GEO[it.nome]);if(br){BAIRRO[it.nome]=br;save(LS_BAIRRO,BAIRRO);}}
    done++;bar.style.width=Math.round(done/todo.length*100)+"%";
-   if(done%5===0){drawStats();drawMap();if(view==="home")drawGrid();else renderList();}
-   await new Promise(r=>setTimeout(r,1100));}
+   if(done%5===0){drawStats();drawMap();if(view==="home")drawGrid();else renderList();}}
  drawStats();drawMap();if(view==="home")drawGrid();else renderList();prog.style.display="none";
- document.getElementById("foot").innerHTML=(ITEMS.length-falhas.length)+" de "+ITEMS.length+" localizados."+(falhas.length?"<br>Não encontrados: "+falhas.join(", "):"");
+ document.getElementById("foot").innerHTML=(ITEMS.length-falhas.length)+" de "+ITEMS.length+" localizados."+(falhas.length?"<br>Não encontrados: "+falhas.join(", ")+"<br>👉 abra o lugar na lista e toque em ‘Ajustar local’ pra colar o endereço ou link do Google Maps.":"");
  geoRunning=false;}
 
 /* boot */
 applyName();goHome();
 setTimeout(()=>map.invalidateSize(),300);
 setTimeout(()=>locate({silent:true}),1200);
-(async()=>{if(STATIONS.length<=ST_FALLBACK.length)await fetchStations();drawStats();drawMap();geocodeAll();})();
+(async()=>{if(STATIONS.length<=ST_FALLBACK.length)await fetchStations();drawStats();drawMap();drawStations();geocodeAll();})();
 </script>
 </body>
 </html>
