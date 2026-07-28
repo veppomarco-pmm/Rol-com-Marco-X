@@ -150,17 +150,18 @@
   .prof-primary{margin-top:12px;width:100%;max-width:320px;height:52px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:800;cursor:pointer;}
   .profsec{margin:0 18px 18px;}
   .profsec-t{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin:8px 2px 10px;}
-  #landing{position:fixed;inset:0;z-index:20000;display:flex;flex-direction:column;background:var(--bg);}
-  #landing .hero{flex:1;min-height:40vh;background-size:cover;background-position:center;position:relative;}
+  #landing{position:fixed;inset:0;z-index:20000;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;overscroll-behavior:none;touch-action:none;}
+  #landing .hero{flex:1;min-height:34vh;background-size:cover;background-position:center;position:relative;}
   #landing .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,32,.1) 40%,rgba(11,18,32,.9));}
   #landing .heroTop{position:absolute;top:calc(20px + var(--sat));left:0;right:0;text-align:center;z-index:2;color:#fff;font-size:14px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.95;}
-  #landing .card{background:var(--bg);padding:6px 22px calc(28px + var(--sab));position:relative;z-index:3;margin-top:-30px;}
-  #landing h2{font-size:26px;font-weight:800;margin:0 0 6px;text-align:center;letter-spacing:-.01em;}
+  #landing .card{background:var(--bg);border-top-left-radius:26px;border-top-right-radius:26px;padding:30px 22px calc(30px + var(--sab));position:relative;z-index:3;margin-top:-26px;}
+  #landing h2{font-size:26px;font-weight:800;margin:6px 0 6px;text-align:center;letter-spacing:-.01em;}
   #landing p.sub{color:var(--mut);font-size:15px;text-align:center;margin:0 0 22px;line-height:1.5;}
   #landing .gbtn{width:100%;height:56px;border-radius:15px;border:none;background:var(--accent);color:#fff;font-size:17px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;}
   #landing .gbtn .gi{width:24px;height:24px;border-radius:50%;background:#fff;color:#4285F4;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px;}
   #landing .guest{width:100%;height:54px;border-radius:15px;border:1px solid var(--line);background:transparent;color:var(--txt);font-size:16px;font-weight:600;cursor:pointer;margin-top:12px;}
   #landing .terms{color:var(--text-muted,#6f8398);font-size:12px;text-align:center;margin:16px 6px 0;line-height:1.5;}
+  #routeInfo{display:none;position:absolute;left:14px;bottom:calc(80px + var(--sab));z-index:450;background:var(--accent);color:#fff;font-size:14px;font-weight:700;padding:9px 14px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.35);}
 </style>
 </head>
 <body>
@@ -192,6 +193,7 @@
     <div id="mapHint">👆 toque no mapa para tela cheia</div>
     <button id="closeBtn" class="mapbtn" aria-label="Fechar tela cheia">✕</button>
     <button id="gmapsArea"><i>🧭</i> Abrir esta área no Google Maps</button>
+    <div id="routeInfo"></div>
   </div>
 
   <div class="stats" id="stats">
@@ -326,6 +328,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/openrouteservice-js/dist/ors-js-client.js"></script>
 <script>
 /* ===== LOGIN + BANCO NA NUVEM (Supabase) =====
    1) Rode no SQL Editor do Supabase: supabase_schema.sql e depois supabase_seed.sql
@@ -336,6 +339,12 @@
    4) Project Settings → API → copie "Project URL" e a chave "anon public" e cole abaixo
    Enquanto ficar vazio, o app funciona normal (lista embutida, salva só neste aparelho).      */
 const SUPABASE_URL="https://qddwvgnkjjiydxszbgqc.supabase.co", SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkZHd2Z25ramppeWR4c3piZ3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNzkxMzcsImV4cCI6MjEwMDc1NTEzN30.CsN2SQZC9H7eR8_8JuI1nu5kiRm2425fFqE93MSW5Kw";
+/* ===== ROTA A PÉ NO APP (openrouteservice) =====
+   Crie uma conta gratuita em https://openrouteservice.org, gere uma API key
+   (Dashboard → Request a token) e cole abaixo. Confirme os limites diários no
+   painel — mudam de tempos em tempos. Sem a key, o botão "Direções" continua
+   abrindo o Google Maps normalmente (nada quebra).                          */
+const ORS_API_KEY="";
 
 const CATS = {
   "Padaria / Café":"#e0a458","Italiana":"#e24b4a","Contemporânea":"#22c55e","Asiática":"#f472b6",
@@ -419,12 +428,12 @@ function bairroOf(it){return BAIRRO[it.nome]||null;}
 /* mapa */
 const map=L.map("map",{zoomControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:true,attributionControl:false}).setView([-23.556,-46.66],12);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{maxZoom:20,subdomains:"abcd"}).addTo(map);
-const layer=L.layerGroup().addTo(map);const stationLayer=L.layerGroup().addTo(map);const markers={};let isFull=false;let showStations=true;
+const layer=L.layerGroup().addTo(map);const stationLayer=L.layerGroup().addTo(map);const routeLayer=L.layerGroup().addTo(map);const markers={};let isFull=false;let showStations=true;
 const mapwrap=document.getElementById("mapwrap");
 function enterFull(focus){isFull=true;mapwrap.classList.add("full");document.body.classList.add("noscroll");
  map.dragging.enable();map.scrollWheelZoom.enable();map.doubleClickZoom.enable();map.touchZoom.enable();
  setTimeout(()=>{map.invalidateSize();if(focus)map.setView(focus,16);},60);}
-function exitFull(){isFull=false;mapwrap.classList.remove("full");document.body.classList.remove("noscroll");
+function exitFull(){isFull=false;mapwrap.classList.remove("full");document.body.classList.remove("noscroll");if(typeof clearRoute==="function")clearRoute();
  map.dragging.disable();map.scrollWheelZoom.disable();map.doubleClickZoom.disable();setTimeout(()=>map.invalidateSize(),60);}
 map.on("click",()=>{if(!isFull)enterFull();});
 document.getElementById("expandBtn").onclick=e=>{e.stopPropagation();enterFull();};
@@ -547,7 +556,7 @@ function renderList(){const shown=shownItems();const total=listBase().length;
    top.appendChild(chk);top.appendChild(info);
    const acts=document.createElement("div");acts.className="acts";
    const bMap=document.createElement("button");bMap.className="btn";bMap.innerHTML='<i>◎</i> Ver no mapa';
-   bMap.onclick=()=>{if(!p){alert("Ainda localizando este lugar. Tente em instantes.");return;}enterFull(p);setTimeout(()=>{if(markers[it.nome])markers[it.nome].openPopup();},250);};
+   bMap.onclick=()=>{if(!p){alert("Ainda localizando este lugar. Tente em instantes.");return;}enterFull(p);setTimeout(()=>{if(markers[it.nome])markers[it.nome].openPopup();drawRoute(p);},250);};
    const bDir=document.createElement("a");bDir.className="btn dir";bDir.href=gmapsDir(it);bDir.target="_blank";bDir.rel="noopener";bDir.innerHTML='<i>➤</i> Direções';
    acts.appendChild(bMap);acts.appendChild(bDir);
    const fix=document.createElement("button");fix.className="btn";fix.style.marginTop="8px";fix.style.width="100%";fix.innerHTML='<i>✎</i> '+(p?'Ajustar local':'Localizar pelo endereço/link');
@@ -726,7 +735,7 @@ function cardEl(it){const p=GEO[it.nome];const done=!!VIS[it.nome];const near=me
  top.appendChild(chk);top.appendChild(info);
  const acts=document.createElement("div");acts.className="acts";
  const bMap=document.createElement("button");bMap.className="btn";bMap.innerHTML='<i>◎</i> Ver no mapa';
- bMap.onclick=()=>{if(!p){alert("Ainda localizando este lugar.");return;}enterFull(p);setTimeout(()=>{if(markers[it.nome])markers[it.nome].openPopup();},250);};
+ bMap.onclick=()=>{if(!p){alert("Ainda localizando este lugar.");return;}enterFull(p);setTimeout(()=>{if(markers[it.nome])markers[it.nome].openPopup();drawRoute(p);},250);};
  const bDir=document.createElement("a");bDir.className="btn dir";bDir.href=gmapsDir(it);bDir.target="_blank";bDir.rel="noopener";bDir.innerHTML='<i>➤</i> Direções';
  acts.appendChild(bMap);acts.appendChild(bDir);
  const fix=document.createElement("button");fix.className="btn";fix.style.marginTop="8px";fix.style.width="100%";fix.innerHTML='<i>✎</i> '+(p?'Ajustar local':'Localizar pelo endereço/link');fix.onclick=()=>openLoc(it.nome);
@@ -762,6 +771,20 @@ document.querySelectorAll("#bottomnav .nav").forEach(n=>n.onclick=()=>setTab(n.d
 document.getElementById("avatarWrap").onclick=()=>document.getElementById("avatarUp").click();
 document.getElementById("avatarUp").onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{localStorage.setItem(LS_PHOTO,rd.result);}catch(err){alert("Foto muito grande — escolha uma menor.");return;}setAvatar();};rd.readAsDataURL(f);};
 
+function clearRoute(){routeLayer.clearLayers();const b=document.getElementById("routeInfo");if(b)b.style.display="none";}
+async function drawRoute(dest){
+ if(typeof ORS_API_KEY==="undefined"||!ORS_API_KEY)return false;
+ if(!USERLOC){locate({center:false});return false;}
+ try{
+  const D=new Openrouteservice.Directions({api_key:ORS_API_KEY});
+  const res=await D.calculate({coordinates:[[USERLOC[1],USERLOC[0]],[dest[1],dest[0]]],profile:"foot-walking",format:"geojson"});
+  const feat=res.features[0];const line=feat.geometry.coordinates.map(c=>[c[1],c[0]]);
+  clearRoute();L.polyline(line,{color:"#2f6bff",weight:5,opacity:.85}).addTo(routeLayer);
+  const s=feat.properties.summary,b=document.getElementById("routeInfo");
+  if(b){b.textContent="🚶 "+(s.distance/1000).toFixed(1)+" km · "+Math.round(s.duration/60)+" min a pé";b.style.display="block";}
+  return true;
+ }catch(e){return false;}
+}
 function hideLanding(){const l=document.getElementById("landing");if(l)l.classList.add("hidden");}
 function showLanding(){const l=document.getElementById("landing");if(l)l.classList.remove("hidden");}
 function doLogin(){if(sbEnabled()){sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href.split("#")[0]}});}else{alert("Login na nuvem não configurado.");}}
