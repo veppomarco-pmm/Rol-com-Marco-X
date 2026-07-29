@@ -159,6 +159,45 @@
   #landing .guest{width:100%;height:54px;border-radius:15px;border:1px solid var(--line);background:transparent;color:var(--txt);font-size:16px;font-weight:600;cursor:pointer;margin-top:12px;}
   #landing .terms{color:var(--text-muted,#6f8398);font-size:12px;text-align:center;margin:16px 6px 0;line-height:1.5;}
   #routeInfo{display:none;position:absolute;left:14px;bottom:calc(80px + var(--sab));z-index:450;background:var(--accent);color:#fff;font-size:14px;font-weight:700;padding:9px 14px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.35);}
+  #detail{position:fixed;inset:0;z-index:15000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(28px + var(--sab));}
+  #detail.hidden{display:none;}
+  #detail .dbar{position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 70%,rgba(11,18,32,.85));display:flex;align-items:center;gap:10px;padding:calc(12px + var(--sat)) 16px 10px;z-index:2;}
+  #detail .dbar .dtitle{font-size:14px;color:var(--mut);text-transform:capitalize;}
+  .dphotos{display:flex;gap:8px;overflow-x:auto;padding:2px 16px 12px;scrollbar-width:none;}
+  .dphotos::-webkit-scrollbar{display:none;}
+  .dph{flex:none;width:200px;height:140px;border-radius:14px;background:#131c2e center/cover no-repeat;}
+  .dph-load,.dph-none{color:var(--mut);font-size:13px;padding:8px 2px;}
+  #dHead{padding:2px 16px 0;}
+  .dname{font-size:24px;font-weight:800;line-height:1.12;}
+  .dsub{font-size:13px;color:var(--mut);margin-top:3px;}
+  .drate{display:flex;align-items:center;gap:8px;margin-top:9px;}
+  .drate b{font-size:16px;}
+  .dforks-avg{display:flex;gap:2px;}
+  .dacts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .dbtn{flex:1;min-width:96px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;}
+  .dbtn.primary{background:var(--accent);color:#fff;border:none;}
+  .dcard{margin:16px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;}
+  .dsec-t{font-size:14px;font-weight:700;}
+  .dforks{display:flex;gap:10px;margin:10px 0 12px;}
+  .fkbtn{background:none;border:none;padding:0;cursor:pointer;line-height:0;}
+  .dta{position:relative;}
+  .dta textarea{width:100%;height:74px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--txt);padding:10px 12px;font-size:14px;font-family:inherit;resize:none;outline:none;}
+  #dCC{position:absolute;right:10px;bottom:8px;font-size:11px;color:#6b7a95;}
+  .dpublish{margin-top:10px;width:100%;height:46px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:800;cursor:pointer;}
+  .dcomments{padding:0 16px 10px;}
+  #dList{display:flex;flex-direction:column;gap:16px;margin-top:12px;}
+  .cmt{display:flex;gap:11px;}
+  .cav{flex:none;width:38px;height:38px;border-radius:50%;object-fit:cover;}
+  .cav.ci{display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:700;font-size:14px;}
+  .cbody{flex:1;min-width:0;}
+  .chead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .cname{font-size:13px;font-weight:700;}
+  .ctime{font-size:11px;color:var(--mut);}
+  .cforks{display:flex;gap:1px;margin:3px 0 4px;}
+  .ctxt{font-size:14px;line-height:1.4;}
+  .cfoot{display:flex;gap:16px;margin-top:6px;}
+  .clike{color:var(--mut);font-size:13px;cursor:pointer;user-select:none;}
+  .clike.on{color:#f5b301;}
 </style>
 </head>
 <body>
@@ -275,6 +314,20 @@
   <button class="nav" data-tab="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span>Buscar</span></button>
   <button class="nav" data-tab="perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span>Perfil</span></button>
 </nav>
+
+<div id="detail" class="hidden">
+  <div class="dbar"><button class="back" id="dBack" aria-label="Voltar">‹</button><div class="dtitle" id="dTitle">Restaurante</div></div>
+  <div class="dphotos" id="dPhotos"></div>
+  <div id="dHead"></div>
+  <div class="dcard">
+    <div class="dsec-t">Sua avaliação</div>
+    <div style="font-size:12px;color:var(--mut);margin:2px 0 0">Toque nos garfos pra dar sua nota (1 a 5)</div>
+    <div class="dforks" id="dMyForks"></div>
+    <div class="dta"><textarea id="dReview" maxlength="140" placeholder="Conta rapidinho o que achou... (até 140 caracteres)"></textarea><span id="dCC">0/140</span></div>
+    <button class="dpublish" id="dPublish">Publicar avaliação</button>
+  </div>
+  <div class="dcomments"><div class="dsec-t" id="dCount">Comentários</div><div id="dList"></div></div>
+</div>
 
 <!-- modal adicionar -->
 <div class="modal" id="mAdd"><div class="sheet">
@@ -405,7 +458,7 @@ const SEED_BAIRRO = {
 const LS_GEO="rcm_geo_v1", LS_ST="rcm_stations_v1", LS_VIS="rcm_visited_v1", LS_BAIRRO="rcm_bairro_v1", LS_CUSTOM="rcm_custom_v1", LS_NAME="rcm_name_v1";
 let GEO=load(LS_GEO,{}), STATIONS=load(LS_ST,[]), VIS=load(LS_VIS,{}), BAIRRO=load(LS_BAIRRO,{}), CUSTOM=load(LS_CUSTOM,[]), NAME=localStorage.getItem(LS_NAME)||"";
 let view="home", homeTab="cat", base={type:"todas",value:null,title:""}, statusF="todos", query="", USERLOC=null, DBROWS=null, guest=false;
-const LS_ENTERED="rcm_entered_v1"; const ADDR={};
+const LS_ENTERED="rcm_entered_v1"; const ADDR={}, RATINGS={}, PLACEID={}, IGLINK={};
 function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch(e){return d;}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}if(typeof cloudPush==="function"&&(k===LS_VIS||k===LS_CUSTOM))cloudPush();}
 
@@ -427,7 +480,7 @@ function loadGmaps(){const el=document.getElementById("map");
  if(window.google&&window.google.maps){initGmap();return;}
  window.__gmapsReady=initGmap;
  const s=document.createElement("script");
- s.src="https://maps.googleapis.com/maps/api/js?key="+GMAPS_API_KEY+"&libraries=geometry&callback=__gmapsReady&loading=async";
+ s.src="https://maps.googleapis.com/maps/api/js?key="+GMAPS_API_KEY+"&libraries=geometry,places&callback=__gmapsReady&loading=async";
  s.async=true;s.onerror=()=>{if(el)el.innerHTML='<div style="padding:26px;text-align:center;color:#a33;font-size:14px">Não consegui carregar o Google Maps. Confira se a API key é válida e se a Maps JavaScript API está ativada.</div>';};
  document.head.appendChild(s);}
 function initGmap(){
@@ -454,11 +507,12 @@ function locate(opts){opts=opts||{};
  locateBtn.textContent="…";
  navigator.geolocation.getCurrentPosition(pos=>{
    const ll=[pos.coords.latitude,pos.coords.longitude];USERLOC=ll;
-   if(map){const p2={lat:ll[0],lng:ll[1]};
+   if(map){const p2={lat:ll[0],lng:ll[1]};const acc=Math.min(pos.coords.accuracy||120,600);
      if(userMarker)userMarker.setPosition(p2);
-     else userMarker=new google.maps.Marker({position:p2,map:map,title:"Você está aqui",zIndex:999,icon:{path:google.maps.SymbolPath.CIRCLE,scale:8,fillColor:"#2b8cff",fillOpacity:1,strokeColor:"#fff",strokeWeight:3}});
+     else userMarker=new google.maps.Marker({position:p2,map:map,title:"Você está aqui",zIndex:9999,icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:"#1a73e8",fillOpacity:1,strokeColor:"#fff",strokeWeight:2.5}});
+     if(userCircle){userCircle.setCenter(p2);userCircle.setRadius(acc);}else userCircle=new google.maps.Circle({map:map,center:p2,radius:acc,strokeColor:"#1a73e8",strokeOpacity:.25,strokeWeight:1,fillColor:"#1a73e8",fillOpacity:.12,clickable:false});
      const inSP=ll[0]<-23.3&&ll[0]>-24.1&&ll[1]<-46.3&&ll[1]>-46.9;
-     if(opts.center||(inSP&&!opts.silent)){map.setCenter(p2);map.setZoom(14);}}
+     if(opts.center||(inSP&&!opts.silent)){map.setCenter(p2);map.setZoom(15);}}
    locateBtn.textContent="📍";if(view==="cat")renderList();if(typeof tab!=="undefined"&&tab==="buscar")renderBuscar();
  },err=>{locateBtn.textContent="📍";if(!opts.silent)alert("Não consegui pegar sua localização. Verifique a permissão de localização do navegador.");},
  {enableHighAccuracy:true,timeout:12000,maximumAge:60000});}
@@ -498,12 +552,13 @@ function drawMap(){if(!gmapReady||!map)return;
  const its=(typeof tab!=="undefined"&&tab==="buscar")?buscarShown():(view==="cat"?shownItems():ITEMS);
  const bounds=new google.maps.LatLngBounds();let n=0;
  its.forEach(it=>{const p=GEO[it.nome];if(!p)return;const pos={lat:p[0],lng:p[1]};
-   const m=new google.maps.Marker({position:pos,map:map,title:it.nome,icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:CATS[it.cat]||"#999",fillOpacity:1,strokeColor:"#0b1220",strokeWeight:1.5}});
+   const m=new google.maps.Marker({position:pos,map:map,title:it.nome,icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:CATS[it.cat]||"#999",fillOpacity:1,strokeColor:"#ffffff",strokeWeight:2},label:{text:(ICONS[it.cat]||"🍴"),fontSize:"14px"}});
    m.addListener("click",()=>openInfo(it,m));markers[it.nome]=m;bounds.extend(pos);n++;});
  if(((typeof tab!=="undefined"&&tab==="buscar")||view==="cat")&&n&&!isFull){if(n===1){map.setCenter(bounds.getCenter());map.setZoom(16);}else map.fitBounds(bounds,50);}}
 function openInfo(it,m){const p=GEO[it.nome];const near=metroNear(it);const ns=p?nearestStation(p[0],p[1]):null;const br=bairroOf(it);
- const html='<div style="font-size:14px;line-height:1.45;color:#111;max-width:220px"><b>'+it.nome+'</b><br>'+it.cat+(br?" · "+br:"")+(near&&ns?"<br>🚇 "+ns.name+" · "+ns.dist+"m":"")+(ADDR[it.nome]?'<br><span style="color:#555">'+ADDR[it.nome]+'</span>':"")+'<br><a href="'+gmapsDir(it)+'" target="_blank" rel="noopener" style="color:#2f6bff;font-weight:700">➤ Como chegar</a></div>';
- infoWindow.setContent(html);infoWindow.open(map,m);}
+ const rt=RATINGS[it.nome];
+ const html='<div style="font-size:14px;line-height:1.45;color:#111;max-width:220px"><b>'+it.nome+'</b><br>'+it.cat+(br?" · "+br:"")+(rt?' · '+forksRow(rt.avg,12)+' '+rt.avg.toFixed(1).replace(".",","):"")+(near&&ns?"<br>🚇 "+ns.name+" · "+ns.dist+"m":"")+'<br><button id="iwDetail" style="margin-top:6px;background:#2f6bff;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer">Ver página e avaliar 🍴</button></div>';
+ infoWindow.setContent(html);infoWindow.open(map,m);google.maps.event.addListenerOnce(infoWindow,"domready",()=>{const b=document.getElementById("iwDetail");if(b)b.onclick=()=>{infoWindow.close();openDetail(it);};});}
 function focusPlace(it){const p=GEO[it.nome];if(!p)return;enterFull(p);setTimeout(()=>{const m=markers[it.nome];if(m)openInfo(it,m);drawRoute(p);},380);}
 
 function drawStats(){let nFui=0,nMetro=0;ITEMS.forEach(it=>{if(VIS[it.nome])nFui++;if(metroNear(it))nMetro++;});
@@ -557,10 +612,11 @@ function renderList(){const shown=shownItems();const total=listBase().length;
    const top=document.createElement("div");top.className="top";
    const chk=document.createElement("button");chk.className="chk"+(done?" on":"");chk.innerHTML=done?"✓":"";chk.setAttribute("aria-label",done?"Desmarcar":"Marcar como visitado");
    chk.onclick=()=>{if(!uid){openLogin();return;}if(VIS[it.nome])delete VIS[it.nome];else VIS[it.nome]=1;save(LS_VIS,VIS);drawStats();renderList();};
-   const info=document.createElement("div");info.className="info";
+   const info=document.createElement("div");info.className="info";info.style.cursor="pointer";info.onclick=()=>openDetail(it);
    info.innerHTML='<div class="nm'+(done?' done':'')+'">'+it.nome+'</div>'+
      '<div class="meta"><span class="dot" style="background:'+(CATS[it.cat]||'#999')+'"></span><span style="color:var(--mut)">'+it.cat+'</span>'+
      (br?'<span class="bairro">📍 '+br+'</span>':'')+
+     (RATINGS[it.nome]?'<span style="display:inline-flex;align-items:center;gap:2px;color:#f5b301">'+forkSVG(13,true)+RATINGS[it.nome].avg.toFixed(1).replace(".",",")+'</span>':'')+
      (p?('<span class="metro'+(near?'':' no')+'">🚇 '+(ns?ns.name+' · '+ns.dist+'m':'—')+'</span>'):'<span class="metro no">📍 localizando…</span>')+'</div>';
    top.appendChild(chk);top.appendChild(info);
    const acts=document.createElement("div");acts.className="acts";
@@ -629,10 +685,10 @@ function updateAuthUI(u){CURUSER=u||null;const el=document.getElementById("authS
  }
  if(typeof setAvatar==="function")setAvatar();}
 async function loadRestaurants(){if(!sb)return;
- try{const {data,error}=await sb.from("restaurants").select("nome,categoria,lat,lng,bairro,endereco");
+ try{const {data,error}=await sb.from("restaurants").select("nome,categoria,lat,lng,bairro,endereco,ig,place_id");
    if(error||!data||!data.length)return;DBROWS=data;
-   data.forEach(r=>{if(r.lat!=null&&r.lng!=null&&!GEO[r.nome])GEO[r.nome]=[r.lat,r.lng];if(r.bairro&&!BAIRRO[r.nome])BAIRRO[r.nome]=r.bairro;if(r.endereco)ADDR[r.nome]=r.endereco;});
-   buildItems();drawStats();if(view==="home")drawGrid();drawMap();geocodeAll();
+   data.forEach(r=>{if(r.lat!=null&&r.lng!=null&&!GEO[r.nome])GEO[r.nome]=[r.lat,r.lng];if(r.bairro&&!BAIRRO[r.nome])BAIRRO[r.nome]=r.bairro;if(r.endereco)ADDR[r.nome]=r.endereco;if(r.ig)IGLINK[r.nome]=r.ig;if(r.place_id)PLACEID[r.nome]=r.place_id;});
+   buildItems();drawStats();if(view==="home")drawGrid();drawMap();geocodeAll();if(typeof loadRatings==="function")loadRatings();
  }catch(e){}}
 function cloudPull(){if(!sb||!uid)return;
  sb.from("profiles").select("name,vis,custom").eq("id",uid).maybeSingle().then(({data})=>{const d=data||{};
@@ -731,8 +787,8 @@ function cardEl(it){const p=GEO[it.nome];const done=!!VIS[it.nome];const near=me
  const top=document.createElement("div");top.className="top";
  const chk=document.createElement("button");chk.className="chk"+(done?" on":"");chk.innerHTML=done?"✓":"";chk.setAttribute("aria-label",done?"Desmarcar":"Marcar como visitado");
  chk.onclick=()=>{if(!uid){openLogin();return;}if(VIS[it.nome])delete VIS[it.nome];else VIS[it.nome]=1;save(LS_VIS,VIS);drawStats();renderBuscar();};
- const info=document.createElement("div");info.className="info";
- info.innerHTML='<div class="nm'+(done?' done':'')+'">'+it.nome+'</div><div class="meta"><span class="dot" style="background:'+(CATS[it.cat]||'#999')+'"></span><span style="color:var(--mut)">'+it.cat+'</span>'+(br?'<span class="bairro">📍 '+br+'</span>':'')+(p?('<span class="metro'+(near?'':' no')+'">🚇 '+(ns?ns.name+' · '+ns.dist+'m':'—')+'</span>'):'<span class="metro no">📍 localizando…</span>')+'</div>';
+ const info=document.createElement("div");info.className="info";info.style.cursor="pointer";info.onclick=()=>openDetail(it);
+ info.innerHTML='<div class="nm'+(done?' done':'')+'">'+it.nome+'</div><div class="meta"><span class="dot" style="background:'+(CATS[it.cat]||'#999')+'"></span><span style="color:var(--mut)">'+it.cat+'</span>'+(br?'<span class="bairro">📍 '+br+'</span>':'')+(RATINGS[it.nome]?'<span style="display:inline-flex;align-items:center;gap:2px;color:#f5b301">'+forkSVG(13,true)+RATINGS[it.nome].avg.toFixed(1).replace(".",",")+'</span>':'')+(p?('<span class="metro'+(near?'':' no')+'">🚇 '+(ns?ns.name+' · '+ns.dist+'m':'—')+'</span>'):'<span class="metro no">📍 localizando…</span>')+'</div>';
  top.appendChild(chk);top.appendChild(info);
  const acts=document.createElement("div");acts.className="acts";
  const bMap=document.createElement("button");bMap.className="btn";bMap.innerHTML='<i>◎</i> Ver no mapa';
@@ -780,6 +836,70 @@ function drawRoute(dest){
   if(status==="OK"&&res&&res.routes&&res.routes[0]){dirRenderer.setDirections(res);const leg=res.routes[0].legs[0];const b=document.getElementById("routeInfo");if(b){b.textContent="🚶 "+leg.distance.text+" · "+leg.duration.text;b.style.display="block";}}
   else clearRoute();
  });}
+/* ===== página do restaurante (avaliações em garfos + comentários) ===== */
+let curDetail=null,myRating=0,placesSvc=null;
+function escH(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function forkSVG(sz,on){return '<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="none" stroke="'+(on?"#f5b301":"#3a4a66")+'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="3" x2="8" y2="8"/><line x1="12" y1="3" x2="12" y2="8"/><line x1="16" y1="3" x2="16" y2="8"/><path d="M8 8h8"/><path d="M12 8v12"/></svg>';}
+function forksRow(r,sz){let h="";const n=Math.round(r||0);for(let i=1;i<=5;i++)h+=forkSVG(sz,i<=n);return h;}
+function openDetail(it){if(!it)return;curDetail=it;const d=document.getElementById("detail");d.classList.remove("hidden");document.body.classList.add("noscroll");d.scrollTop=0;
+ document.getElementById("dTitle").textContent=it.cat;renderDetailHead();renderMyForm(null);
+ document.getElementById("dPhotos").innerHTML='<div class="dph-load">Carregando fotos…</div>';loadPhotos(it);loadReviews(it);}
+document.getElementById("dBack").onclick=()=>{document.getElementById("detail").classList.add("hidden");document.body.classList.remove("noscroll");};
+function renderDetailHead(){const it=curDetail,rt=RATINGS[it.nome],br=bairroOf(it);
+ document.getElementById("dHead").innerHTML='<div class="dname">'+escH(it.nome)+'</div><div class="dsub">'+it.cat+(br?" · "+br:"")+'</div>'+(ADDR[it.nome]?'<div class="dsub">'+escH(ADDR[it.nome])+'</div>':'')+
+  '<div class="drate">'+(rt?'<span class="dforks-avg">'+forksRow(rt.avg,16)+'</span><b>'+rt.avg.toFixed(1).replace(".",",")+'</b><span class="dsub">· '+rt.count+' avaliaç'+(rt.count>1?"ões":"ão")+'</span>':'<span class="dsub">Seja o primeiro a avaliar 🍴</span>')+'</div>'+
+  '<div class="dacts"><a class="dbtn primary" href="'+gmapsDir(it)+'" target="_blank" rel="noopener">➤ Direções</a><button class="dbtn" id="dOnMap">◎ No mapa</button>'+(IGLINK[it.nome]?'<a class="dbtn" href="'+IGLINK[it.nome]+'" target="_blank" rel="noopener">Instagram</a>':'')+'</div>';
+ const om=document.getElementById("dOnMap");if(om)om.onclick=()=>{document.getElementById("detail").classList.add("hidden");document.body.classList.remove("noscroll");focusPlace(it);};}
+function drawMyForks(){const c=document.getElementById("dMyForks");c.innerHTML="";for(let i=1;i<=5;i++){const b=document.createElement("button");b.type="button";b.className="fkbtn";b.innerHTML=forkSVG(30,i<=myRating);b.onclick=()=>{myRating=i;drawMyForks();};c.appendChild(b);}}
+function renderMyForm(mine){myRating=mine?mine.nota:0;drawMyForks();const t=document.getElementById("dReview");t.value=(mine&&mine.comentario)?mine.comentario:"";document.getElementById("dCC").textContent=t.value.length+"/140";}
+document.getElementById("dReview").addEventListener("input",()=>{document.getElementById("dCC").textContent=document.getElementById("dReview").value.length+"/140";});
+document.getElementById("dPublish").onclick=submitReview;
+function loadPhotos(it){const box=document.getElementById("dPhotos");
+ if(!(window.google&&google.maps&&google.maps.places)){box.innerHTML='<div class="dph-none">Fotos do Google indisponíveis (ative a Places API na sua chave).</div>';return;}
+ if(!placesSvc)placesSvc=new google.maps.places.PlacesService(document.createElement("div"));
+ const show=pid=>placesSvc.getDetails({placeId:pid,fields:["photos"]},(res,st)=>{
+   if(st==="OK"&&res&&res.photos&&res.photos.length){box.innerHTML="";res.photos.slice(0,8).forEach(ph=>{const d=document.createElement("div");d.className="dph";d.style.backgroundImage="url('"+ph.getUrl({maxWidth:640,maxHeight:440})+"')";box.appendChild(d);});}
+   else box.innerHTML='<div class="dph-none">Sem fotos do Google para este lugar.</div>';});
+ if(PLACEID[it.nome]){show(PLACEID[it.nome]);return;}
+ placesSvc.findPlaceFromQuery({query:it.nome+", "+(ADDR[it.nome]||"São Paulo"),fields:["place_id"]},(r,st)=>{
+   if(st==="OK"&&r&&r[0]){PLACEID[it.nome]=r[0].place_id;savePlaceId(it.nome,r[0].place_id);show(r[0].place_id);}
+   else box.innerHTML='<div class="dph-none">Não encontrei este lugar no Google.</div>';});}
+function savePlaceId(nome,pid){if(sb&&uid){try{sb.from("restaurants").update({place_id:pid}).eq("nome",nome).then(()=>{});}catch(e){}}}
+function timeAgo(ts){const s=(Date.now()-new Date(ts).getTime())/1000;if(s<3600)return "há "+Math.max(1,Math.round(s/60))+" min";if(s<86400)return "há "+Math.round(s/3600)+" h";const d=Math.round(s/86400);if(d<7)return "há "+d+" d";if(d<30)return "há "+Math.round(d/7)+" sem";return "há "+Math.round(d/30)+" mês";}
+function loadReviews(it){const list=document.getElementById("dList");list.innerHTML='<div class="dph-load">Carregando…</div>';
+ if(!sb){list.innerHTML='<div class="dph-none">Login na nuvem não configurado.</div>';document.getElementById("dCount").textContent="Comentários";return;}
+ sb.from("reviews").select("id,user_id,user_name,user_avatar,nota,comentario,created_at").eq("restaurant_nome",it.nome).order("created_at",{ascending:false}).then(({data})=>{
+  const rev=data||[];document.getElementById("dCount").textContent=rev.length+" comentário"+(rev.length===1?"":"s");
+  const mine=rev.find(r=>uid&&r.user_id===uid);renderMyForm(mine||null);
+  if(!rev.length){list.innerHTML='<div class="dph-none">Ainda sem avaliações. Seja o primeiro! 🍴</div>';return;}
+  const ids=rev.map(r=>r.id);
+  sb.from("review_likes").select("review_id,user_id").in("review_id",ids).then(({data:lk})=>{
+    const cnt={},mineLk={};(lk||[]).forEach(x=>{cnt[x.review_id]=(cnt[x.review_id]||0)+1;if(uid&&x.user_id===uid)mineLk[x.review_id]=1;});
+    renderComments(rev,cnt,mineLk);});
+ });}
+function renderComments(rev,cnt,mineLk){const list=document.getElementById("dList");list.innerHTML="";
+ rev.forEach(r=>{const nm=r.user_name||"Usuário";const ini=nm.trim().slice(0,1).toUpperCase();const liked=mineLk&&mineLk[r.id];const c=(cnt&&cnt[r.id])||0;
+  const row=document.createElement("div");row.className="cmt";
+  const av=r.user_avatar?'<img class="cav" src="'+r.user_avatar+'" referrerpolicy="no-referrer" alt=""/>':'<div class="cav ci">'+escH(ini)+'</div>';
+  row.innerHTML=av+'<div class="cbody"><div class="chead"><span class="cname">'+escH(nm)+'</span><span class="ctime">'+timeAgo(r.created_at)+'</span></div><div class="cforks">'+forksRow(r.nota,13)+'</div>'+(r.comentario?'<div class="ctxt">'+escH(r.comentario)+'</div>':'')+'<div class="cfoot"><span class="clike'+(liked?' on':'')+'" data-id="'+r.id+'">▲ <b>'+c+'</b></span></div></div>';
+  list.appendChild(row);});
+ list.querySelectorAll(".clike").forEach(el=>el.onclick=()=>toggleLike(+el.dataset.id));}
+async function submitReview(){if(!uid){openLogin();return;}if(!myRating){alert("Toque nos garfos pra dar sua nota (1 a 5).");return;}
+ const it=curDetail,t=document.getElementById("dReview").value.trim(),u=CURUSER||{};
+ const nome=(u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||NAME||"Você";
+ const av=(u.user_metadata&&(u.user_metadata.avatar_url||u.user_metadata.picture))||null;
+ const btn=document.getElementById("dPublish");btn.textContent="Publicando…";
+ try{await sb.from("reviews").upsert({restaurant_nome:it.nome,user_id:uid,user_name:nome,user_avatar:av,nota:myRating,comentario:t},{onConflict:"restaurant_nome,user_id"});}catch(e){}
+ btn.textContent="Publicar avaliação";loadReviews(it);loadRatings();}
+async function toggleLike(id){if(!uid){openLogin();return;}
+ try{const {data}=await sb.from("review_likes").select("review_id").eq("review_id",id).eq("user_id",uid).maybeSingle();
+  if(data)await sb.from("review_likes").delete().eq("review_id",id).eq("user_id",uid);
+  else await sb.from("review_likes").insert({review_id:id,user_id:uid});}catch(e){}
+ loadReviews(curDetail);}
+function loadRatings(){if(!sb)return;sb.from("reviews").select("restaurant_nome,nota").then(({data})=>{
+  for(const k in RATINGS)delete RATINGS[k];const g={};(data||[]).forEach(r=>{(g[r.restaurant_nome]=g[r.restaurant_nome]||[]).push(r.nota);});
+  for(const nm in g){const a=g[nm];RATINGS[nm]={avg:a.reduce((x,y)=>x+y,0)/a.length,count:a.length};}
+  if(view==="cat")renderList();if(typeof tab!=="undefined"&&tab==="buscar")renderBuscar();});}
 function hideLanding(){const l=document.getElementById("landing");if(l)l.classList.add("hidden");}
 function showLanding(){const l=document.getElementById("landing");if(l)l.classList.remove("hidden");}
 function doLogin(){if(sbEnabled()){sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href.split("#")[0]}});}else{alert("Login na nuvem não configurado.");}}
